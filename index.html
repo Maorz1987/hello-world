@@ -23,6 +23,16 @@
       color: #ffffff;
       white-space: nowrap;
       will-change: transform;
+      z-index: 2;
+    }
+    .panda {
+      position: fixed;
+      top: 0;
+      left: 0;
+      font-size: 2.5rem;
+      user-select: none;
+      will-change: transform;
+      z-index: 1;
     }
   </style>
 </head>
@@ -36,44 +46,97 @@
         '#277da1', '#ff5da2', '#90be6d', '#ffd6a5'
       ];
       var ci = 0;
-
       var x = 40, y = 40;
       var vx = 2.4, vy = 2.4;
 
-      function bounds() {
+      function logoBounds() {
         return {
           w: window.innerWidth - logo.offsetWidth,
           h: window.innerHeight - logo.offsetHeight
         };
       }
-
       function nextColor() {
         ci = (ci + 1) % colors.length;
         logo.style.color = colors[ci];
       }
-
-      function tick() {
-        var b = bounds();
-        x += vx;
-        y += vy;
-
+      function moveLogo() {
+        var b = logoBounds();
+        x += vx; y += vy;
         var hit = false;
         if (x <= 0) { x = 0; vx = Math.abs(vx); hit = true; }
         else if (x >= b.w) { x = b.w; vx = -Math.abs(vx); hit = true; }
         if (y <= 0) { y = 0; vy = Math.abs(vy); hit = true; }
         else if (y >= b.h) { y = b.h; vy = -Math.abs(vy); hit = true; }
         if (hit) nextColor();
-
         logo.style.transform = 'translate(' + x + 'px, ' + y + 'px)';
-        requestAnimationFrame(tick);
       }
 
+      // --- pandas jumping around ---
+      var GRAVITY = 0.6;
+      var pandas = [];
+      var PANDA_COUNT = 7;
+
+      function makePanda() {
+        var el = document.createElement('div');
+        el.className = 'panda';
+        el.textContent = '🐼';
+        document.body.appendChild(el);
+        return {
+          el: el,
+          x: Math.random() * (window.innerWidth - 60),
+          y: Math.random() * (window.innerHeight / 2),
+          vx: (Math.random() * 6) - 3,
+          vy: Math.random() * -4,
+          size: 0
+        };
+      }
+
+      function jump(p) {
+        p.vy = -(11 + Math.random() * 7);
+        p.vx = (Math.random() * 10) - 5;
+      }
+
+      function movePanda(p) {
+        var size = p.el.offsetWidth || 40;
+        var maxX = window.innerWidth - size;
+        var maxY = window.innerHeight - size;
+
+        p.vy += GRAVITY;
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x <= 0) { p.x = 0; p.vx = Math.abs(p.vx); }
+        else if (p.x >= maxX) { p.x = maxX; p.vx = -Math.abs(p.vx); }
+
+        if (p.y >= maxY) {
+          p.y = maxY;
+          jump(p);
+        }
+        if (p.y <= 0) { p.y = 0; p.vy = Math.abs(p.vy); }
+
+        var flip = p.vx < 0 ? ' scaleX(-1)' : '';
+        p.el.style.transform = 'translate(' + p.x + 'px, ' + p.y + 'px)' + flip;
+      }
+
+      for (var i = 0; i < PANDA_COUNT; i++) pandas.push(makePanda());
+
+      // occasionally make a random panda leap
+      setInterval(function () {
+        var p = pandas[Math.floor(Math.random() * pandas.length)];
+        if (p) jump(p);
+      }, 900);
+
       window.addEventListener('resize', function () {
-        var b = bounds();
+        var b = logoBounds();
         if (x > b.w) x = b.w;
         if (y > b.h) y = b.h;
       });
 
+      function tick() {
+        moveLogo();
+        for (var i = 0; i < pandas.length; i++) movePanda(pandas[i]);
+        requestAnimationFrame(tick);
+      }
       requestAnimationFrame(tick);
     })();
   </script>
